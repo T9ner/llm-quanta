@@ -139,7 +139,6 @@ class ComparisonReport:
     def _calculate_overall_score(self, method: MethodResults) -> float:
         """Calculate an overall score balancing quality, speed, and memory."""
         bench = method.benchmarks
-        quant = method.quantization
 
         # Normalize each metric (0-1 scale)
         quality_score = 0.5  # Default
@@ -193,15 +192,15 @@ class ComparisonReport:
     def to_markdown(self) -> str:
         """Generate full markdown report."""
         lines = [
-            f"# LLM Quantization Comparison Report",
-            f"",
+            "# LLM Quantization Comparison Report",
+            "",
             f"**Model:** {self.model_id}",
             f"**Generated:** {self.timestamp}",
-            f"",
-            f"## Summary Table",
-            f"",
+            "",
+            "## Summary Table",
+            "",
             self.get_summary_table(),
-            f"",
+            "",
         ]
 
         # Add rankings
@@ -258,7 +257,7 @@ class ComparisonReport:
     <p><strong>Generated:</strong> {self.timestamp}</p>
 
     <h2>Summary Table</h2>
-    {self.get_summary_table().replace('|', '</td><td>').replace('\n', '</tr>\n<tr><td>')}
+    {self.to_dataframe()[["method","bits","compression_ratio","quantized_size_mb"]].to_html(index=False, border=0)}
 
     <h2>Visualizations</h2>
     <div class="chart-container">

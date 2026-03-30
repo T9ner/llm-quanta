@@ -16,18 +16,23 @@ Existing tools like `auto-gptq`, `autoawq`, and `llama.cpp` each handle a single
 
 ## Installation
 
+> **Note:** This package is not yet published to PyPI. Install directly from source.
+
 ```bash
-# Core package
-pip install llm-quanta
+git clone https://github.com/T9ner/llm-quanta.git
+cd llm-quanta
+
+# Core install (editable)
+pip install -e .
 
 # With specific quantization backends
-pip install llm-quanta[gptq]      # auto-gptq
-pip install llm-quanta[awq]       # autoawq
-pip install llm-quanta[bitsandbytes]
-pip install llm-quanta[gguf]      # llama-cpp-python
+pip install -e ".[gptq]"          # auto-gptq
+pip install -e ".[awq]"           # autoawq
+pip install -e ".[bitsandbytes]"
+pip install -e ".[gguf]"          # llama-cpp-python
 
-# Or install everything
-pip install llm-quanta[all]
+# Everything
+pip install -e ".[all]"
 ```
 
 ## Quick Start
@@ -76,15 +81,17 @@ This generates:
 ## Python API
 
 ```python
-from llm_quanta import Quantizer, BenchmarkRunner, ReportGenerator
+from llm_quanta.quantizers import QuantizerRegistry
+from llm_quanta.benchmarks import BenchmarkRunner
+from llm_quanta.reports import ReportGenerator
 
 # Quantize with a specific method
-quantizer = Quantizer.get("awq")
+quantizer = QuantizerRegistry.get("awq")
 result = quantizer.quantize("meta-llama/Llama-2-7b-hf", output_dir="./quantized")
 
 # Run benchmarks
 runner = BenchmarkRunner()
-benchmarks = runner.run_all("./quantized/gptq")
+benchmarks = runner.run_all("./quantized/awq")
 
 # Generate comparison report
 generator = ReportGenerator()
