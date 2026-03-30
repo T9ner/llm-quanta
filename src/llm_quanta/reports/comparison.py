@@ -142,17 +142,17 @@ class ComparisonReport:
 
         # Normalize each metric (0-1 scale)
         quality_score = 0.5  # Default
-        if bench.perplexity and bench.perplexity.success:
+        if bench.perplexity and bench.perplexity.success and bench.perplexity.value and bench.perplexity.value > 0:
             # Lower perplexity is better, normalize against baseline
             quality_score = min(1.0, 10.0 / bench.perplexity.value)  # Heuristic
 
         speed_score = 0.5
-        if bench.latency and bench.latency.success:
+        if bench.latency and bench.latency.success and bench.latency.value is not None:
             # Higher tokens/s is better, normalize
             speed_score = min(1.0, bench.latency.value / 50.0)  # Heuristic
 
         memory_score = 0.5
-        if bench.memory and bench.memory.success:
+        if bench.memory and bench.memory.success and bench.memory.value and bench.memory.value > 0:
             # Lower memory is better, normalize
             memory_score = min(1.0, 4000.0 / bench.memory.value)  # Heuristic
 
@@ -233,6 +233,12 @@ class ComparisonReport:
 
     def to_html(self) -> str:
         """Generate HTML report with charts."""
+        import json
+        
+        methods = json.dumps([m.quantization.method for m in self.methods])
+        perplexity_data = json.dumps([m.benchmarks.perplexity.value if m.benchmarks.perplexity and m.benchmarks.perplexity.value is not None else 0 for m in self.methods])
+        latency_data = json.dumps([m.benchmarks.latency.value if m.benchmarks.latency and m.benchmarks.latency.value is not None else 0 for m in self.methods])
+
         return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -270,7 +276,7 @@ class ComparisonReport:
     {self._get_recommendation_html() if self.recommendation else ''}
 
     <script>
-        const methods = {list(m.quantization.method for m in self.methods)};
+        const methods = {methods};
         
         // Perplexity Chart
         new Chart(document.getElementById('perplexityChart'), {{
@@ -279,7 +285,7 @@ class ComparisonReport:
                 labels: methods,
                 datasets: [{{
                     label: 'Perplexity (lower is better)',
-                    data: {[m.benchmarks.perplexity.value if m.benchmarks.perplexity else 0 for m in self.methods]},
+                    data: {perplexity_data},
                     backgroundColor: 'rgba(54, 162, 235, 0.5)'
                 }}]
             }},
@@ -293,7 +299,7 @@ class ComparisonReport:
                 labels: methods,
                 datasets: [{{
                     label: 'Tokens/second (higher is better)',
-                    data: {[m.benchmarks.latency.value if m.benchmarks.latency else 0 for m in self.methods]},
+                    data: {latency_data},
                     backgroundColor: 'rgba(75, 192, 192, 0.5)'
                 }}]
             }},
@@ -323,6 +329,9 @@ class ComparisonReport:
             "recommendation": {
                 "best_method": self.recommendation.best_method,
                 "reason": self.recommendation.reason,
+                "hardware_requirements": self.recommendation.hardware_requirements,
+                "quality_score": self.recommendation.quality_score,
+                "speed_score": self.recommendation.speed_score,
                 "overall_score": self.recommendation.overall_score,
             }
             if self.recommendation

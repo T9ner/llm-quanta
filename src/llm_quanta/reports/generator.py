@@ -158,19 +158,19 @@ class ReportGenerator:
         bench = method.benchmarks
 
         # Quality score (inverse perplexity)
-        if bench.perplexity and bench.perplexity.success:
+        if bench.perplexity and bench.perplexity.success and bench.perplexity.value and bench.perplexity.value > 0:
             quality = min(1.0, 10.0 / bench.perplexity.value)
         else:
             quality = 0.5
 
         # Speed score
-        if bench.latency and bench.latency.success:
+        if bench.latency and bench.latency.success and bench.latency.value is not None:
             speed = min(1.0, bench.latency.value / 50.0)
         else:
             speed = 0.5
 
         # Memory efficiency score
-        if bench.memory and bench.memory.success:
+        if bench.memory and bench.memory.success and bench.memory.value and bench.memory.value > 0:
             memory = min(1.0, 4000.0 / bench.memory.value)
         else:
             memory = 0.5
@@ -223,17 +223,39 @@ class ReportGenerator:
 
             method_name = method_dir.name
 
-            # Create a placeholder quantization result
-            quant_result = QuantizationResult(
-                method=method_name,
-                original_model=model_id,
-                output_path=str(method_dir),
-                bits=4,
-                original_size_mb=0,
-                quantized_size_mb=0,
-                compression_ratio=0,
-                quantization_time_seconds=0,
-            )
+            # Attempt to load actual quantization result metadata if available
+            quant_result = None
+            quant_meta_path = method_dir / "quantization.json"
+            if quant_meta_path.exists():
+                import json
+                try:
+                    with open(quant_meta_path, "r") as f:
+                        data = json.load(f)
+                        quant_result = QuantizationResult(
+                            method=data.get("method", method_name),
+                            original_model=data.get("original_model", model_id),
+                            output_path=data.get("output_path", str(method_dir)),
+                            bits=data.get("bits", 4),
+                            original_size_mb=data.get("original_size_mb", 0.0),
+                            quantized_size_mb=data.get("quantized_size_mb", 0.0),
+                            compression_ratio=data.get("compression_ratio", 0.0),
+                            quantization_time_seconds=data.get("quantization_time_seconds", 0.0),
+                        )
+                except Exception:
+                    pass
+            
+            # Fallback to placeholder quantization result if loading failed
+            if not quant_result:
+                quant_result = QuantizationResult(
+                    method=method_name,
+                    original_model=model_id,
+                    output_path=str(method_dir),
+                    bits=4,
+                    original_size_mb=0.0,
+                    quantized_size_mb=0.0,
+                    compression_ratio=0.0,
+                    quantization_time_seconds=0.0,
+                )
             quantization_results.append(quant_result)
 
             # Run benchmarks
